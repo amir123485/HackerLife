@@ -12,7 +12,7 @@ config_version=5
 
 config/name="HackerLife"
 config/description="An original 3D hacker-life simulation. Learn, explore, grow. All cyber targets are fictional simulations."
-config/version="0.1.0"
+config/version="0.1.1"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.04, 0.05, 0.09, 1)
@@ -33,6 +33,7 @@ Missions="*res://scripts/core/mission_manager.gd"
 SaveIO="*res://scripts/core/save_system.gd"
 Sfx="*res://scripts/core/audio_manager.gd"
 Config="*res://scripts/core/settings.gd"
+TouchControls="*res://scripts/ui/touch_controls.gd"
 
 [display]
 
@@ -40,6 +41,7 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=4
 
 [input]
 

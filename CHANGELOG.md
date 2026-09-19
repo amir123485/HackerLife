@@ -40,3 +40,17 @@ Format based on Keep a Changelog; versioning: SemVer-ish (prototype).
 - Android build intentionally not produced (no Android toolchain in the
   build environment); documented in README instead of shipping an
   unverified APK.
+
+## [0.1.1] — Android
+
+### Added
+- Android export preset (arm64-v8a, landscape, immersive mode) and CI
+  workflow (`.github/workflows/android.yml`) that builds and releases
+  `HackerLife.apk` on every push to `main`.
+- On-screen touch controls (mobile only): movement joystick, drag-to-look,
+  interact / sprint / pause buttons; soft keyboard support in the terminal.
+- Landscape orientation lock and 192px launcher icon for Android.
+
+### Changed
+- Player camera look now ignores emulated mouse events so touch drags and
+  mouse look never double-apply.

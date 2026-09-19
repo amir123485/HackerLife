@@ -80,13 +80,24 @@ On the computer: click icons, type in the terminal, `Esc` leaves the computer.
 2. Run `./HackerLife.x86_64`.
 
 ### Android
-Not available in v0.1.0 — see *Known limitations*.
+1. Download `HackerLife.apk` (arm64-v8a) from the
+   [v0.1.0 release](https://github.com/amir123485/HackerLife/releases) or the
+   *Actions → Build Android APK* artifact.
+2. On the device, allow *Install unknown apps* for your file manager, then
+   install the APK (it is signed with a debug keystore — normal
+   side-load warning applies).
+3. Controls: joystick (bottom-left) to move, drag the right side of the
+   screen to orbit the camera, **E** to interact, **RUN** toggles sprint,
+   **||** pauses. Tapping works everywhere in menus and the in-game
+   computer; tapping a text field opens the on-screen keyboard.
 
 ### Building from source
 1. Install [Godot 4.7.x](https://godotengine.org/download) (standard build).
 2. Open the project folder (`project.godot`) in Godot.
 3. `Project → Export` requires the matching **4.7.2 export templates**.
 4. CLI export: `godot --headless --export-release "Windows" builds/windows/HackerLife.exe`
+5. Android APK builds run automatically on GitHub Actions
+   (`.github/workflows/android.yml`) on every push to `main`.
 
 ## How to play (first 10 minutes)
 
@@ -185,13 +196,11 @@ HackerLife/
   police/court/prison systems and aging are **not** in this slice — the
   architecture for them is in place.
 - `TEST-WEB-01` and `TEST-SRV-01` are intentionally locked.
-- No touch controls; mobile is not targeted by this prototype.
 - The Windows executable is unsigned (SmartScreen may warn).
+- The Android APK is signed with a **debug keystore** (fine for personal
+  install/tests; Play Store publishing would need a proper release key).
+- Android targets arm64-v8a devices (any phone from ~2016 onward).
 - Software-rendered capture (this trailer) can look softer than live play.
-- Android build was **not** produced: the build environment has no Android
-  SDK/Gradle/NDK toolchain; rather than shipping an unverified APK, this
-  is documented as a future task (Godot supports Android export once the
-  toolchain is available).
 
 ## Licensing
 

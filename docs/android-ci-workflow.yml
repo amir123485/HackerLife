@@ -1,0 +1,123 @@
+name: Build Android APK
+
+# Builds HackerLife.apk (arm64-v8a) with Godot 4.7.2 export templates.
+# Triggers: every push to main + manual dispatch (Actions tab -> Run workflow).
+#
+# NOTE: the export preset has package/signed=false; this workflow signs the
+# APK explicitly with zipalign + apksigner (debug keystore generated in CI),
+# so no secrets are stored in the repository.
+#
+# HOW TO ENABLE (one-time, because the current PAT lacks the `workflow`
+# permission): copy this file to .github/workflows/android.yml and push:
+#   mkdir -p .github/workflows && cp docs/android-ci-workflow.yml .github/workflows/android.yml
+#   git add .github/workflows/android.yml && git commit -m "ci: android build" && git push
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write   # needed to attach the APK to the GitHub release
+
+jobs:
+  android-apk:
+    name: Export Android APK (arm64-v8a)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (required by Android build tools)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Godot 4.7.2 editor + export templates
+        run: |
+          set -euo pipefail
+          GVER=4.7.2-stable
+          echo "== downloading Godot editor =="
+          curl -L --retry 3 --silent --show-error \
+            -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GVER}/Godot_v${GVER}_linux.x86_64.zip"
+          unzip -o /tmp/godot.zip -d /tmp/godot
+          chmod +x /tmp/godot/Godot_v${GVER}_linux.x86_64
+          sudo mv /tmp/godot/Godot_v${GVER}_linux.x86_64 /usr/local/bin/godot
+          godot --version
+          echo "== downloading export templates =="
+          curl -L --retry 3 --silent --show-error \
+            -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GVER}/Godot_v${GVER}_export_templates.tpz"
+          mkdir -p "${HOME}/.local/share/godot/export_templates/4.7.2.stable"
+          unzip -o /tmp/templates.tpz -d /tmp/tpl
+          cp /tmp/tpl/templates/* "${HOME}/.local/share/godot/export_templates/4.7.2.stable/"
+
+      - name: Generate debug keystore (APK signing)
+        run: |
+          keytool -genkeypair -v \
+            -keystore "${HOME}/debug.keystore" \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=HackerLife,C=US"
+
+      - name: Configure Godot editor settings (SDK / Java)
+        run: |
+          mkdir -p "${HOME}/.config/godot"
+          printf '%s\n' \
+            '[gd_resource type="EditorSettings" format=3]' \
+            '' \
+            '[resource]' \
+            "export/android/android_sdk_path = \"${ANDROID_HOME}\"" \
+            "export/android/java_sdk_path = \"${JAVA_HOME}\"" \
+            > "${HOME}/.config/godot/editor_settings-4.7.tres"
+          echo "--- editor settings ---"
+          cat "${HOME}/.config/godot/editor_settings-4.7.tres"
+
+      - name: Import project resources
+        run: |
+          godot --headless --path . --import
+
+      - name: Export Android APK (unsigned)
+        run: |
+          mkdir -p builds/android
+          godot --headless --path . --export-release "Android" /tmp/HackerLife-unsigned.apk
+          test -s /tmp/HackerLife-unsigned.apk
+
+      - name: Zipalign + sign APK
+        env:
+          KEYSTORE: /home/runner/debug.keystore
+        run: |
+          BUILD_TOOLS="$(ls -d "${ANDROID_HOME}/build-tools/"* | sort -V | tail -1)" \
+          bash scripts/sign_apk.sh /tmp/HackerLife-unsigned.apk builds/android/HackerLife.apk
+          ls -la builds/android/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HackerLife-Android-APK
+          path: builds/android/HackerLife.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach APK to GitHub release (v0.1.0)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0
+          name: "v0.1.0 — First Playable Slice"
+          body: |
+            HackerLife playable vertical slice (Godot 4.7).
+
+            - **HackerLife.apk** — Android (arm64-v8a, debug-signed — installable directly)
+            - Windows / Linux builds: see the project README.
+
+            All cyber targets are fictional simulations. Touch controls: joystick (bottom-left),
+            drag right side to look, E = interact, RUN = sprint toggle, || = pause.
+          files: builds/android/HackerLife.apk
+          fail_on_unmatched_files: true
